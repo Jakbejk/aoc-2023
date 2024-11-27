@@ -9,63 +9,83 @@ import java.util.Set;
 import java.util.Stack;
 
 public class Main {
+
+    private static final String DOWN = "D";
+    private static final String UP = "U";
+    private static final String LEFT = "L";
+    private static final String RIGHT = "R";
+
     public static void main(String[] args) throws IOException {
-        BufferedReader br = new BufferedReader(Files.newBufferedReader(Paths.get("input.txt")));
+        String[][] commands = load("input.txt");
+        boolean[][] fence = createFence(commands);
+        print(fence);
+        System.out.println(count(fence));
+    }
+
+    private static boolean[][] createFence(String[][] commands) {
+        int x = 0;
+        int y = 0;
+        Point max = new Point(Integer.MIN_VALUE, Integer.MIN_VALUE);
+        Point min = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
+
+        Set<Point> coordinates = new HashSet<>();
+        for (String[] instructions : commands) {
+            String direction = instructions[0];
+            int distance = Integer.parseInt(instructions[1]);
+            for (int i = 0; i < distance; i++) {
+                coordinates.add(new Point(x, y));
+                if (DOWN.equals(direction)) {
+                    y++;
+                } else if (UP.equals(direction)) {
+                    y--;
+                } else if (RIGHT.equals(direction)) {
+                    x++;
+                } else if (LEFT.equals(direction)) {
+                    x--;
+                }
+                max = new Point(Math.max(max.x, x), Math.max(max.y, y));
+                min = new Point(Math.min(min.x, x), Math.min(min.y, y));
+            }
+        }
+
+        offsetPoint(max, min);
+        boolean[][] grid = new boolean[max.y + 1][max.x + 1];
+
+        if (min.x < 0 || min.y < 0) {
+            for (Point coordinate : coordinates) {
+                offsetPoint(coordinate, min);
+            }
+        }
+        coordinates.forEach(coordinate -> grid[coordinate.y][coordinate.x] = true);
+        return grid;
+    }
+
+    private static void offsetPoint(Point target, Point offset) {
+        if (offset.x < 0) {
+            target.x -= offset.x;
+        }
+        if (offset.y < 0) {
+            target.y -= offset.y;
+        }
+    }
+
+    private static String[][] load(String path) throws IOException {
+        BufferedReader br = new BufferedReader(Files.newBufferedReader(Paths.get(path)));
         String[] lines = br.lines().toArray(String[]::new);
         String[][] lineParts = new String[lines.length][];
         for (int i = 0; i < lines.length; i++) {
             lineParts[i] = lines[i].split(" ");
         }
-        int x = 0;
-        int y = 0;
-        int maxX = 0;
-        int maxY = 0;
-        int minX = 0;
-        int minY = 0;
-        Set<int[]> coordinates = new HashSet<>();
-        for (String[] linePart : lineParts) {
-            String direction = linePart[0];
-            int distance = Integer.parseInt(linePart[1]);
-            for (int i = 0; i < distance; i++) {
-                coordinates.add(new int[]{y, x});
-                if ("D".equals(direction)) {
-                    y++;
-                } else if ("U".equals(direction)) {
-                    y--;
-                } else if ("R".equals(direction)) {
-                    x++;
-                } else if ("L".equals(direction)) {
-                    x--;
-                }
-                maxX = Math.max(maxX, x);
-                maxY = Math.max(maxY, y);
-                minY = Math.min(minY, y);
-                minX = Math.min(minX, x);
-            }
-        }
-        final int xxx = -minX;
-        final int yyy = -minY;
-        maxY += yyy;
-        maxX += xxx;
-
-        boolean[][] grid = new boolean[maxY + 1][maxX + 1];
-
-        coordinates.forEach(coordinate -> {
-            coordinate[0] += yyy;
-            coordinate[1] += xxx;
-        });
-        coordinates.forEach(coordinate -> grid[coordinate[0]][coordinate[1]] = true);
-        print(grid);
-        System.out.println(count(grid));
+        return lineParts;
     }
 
     private static void print(boolean[][] grid) {
         Point point = findStartPoint(grid);
         assert point != null;
         populate(grid, point.x + 1, point.y + 1);
-        for (int i = 0; i < grid.length; i++) {
-            for (int j = 0; j < grid[i].length; j++) {
-                System.out.print(grid[i][j] ? "#" : ".");
+        for (boolean[] row : grid) {
+            for (boolean cell : row) {
+                System.out.print(cell ? "#" : ".");
             }
             System.out.println();
         }
@@ -84,9 +104,9 @@ public class Main {
 
     private static int count(boolean[][] grid) {
         int count = 0;
-        for (int i = 0; i < grid.length; i++) {
-            for (int j = 0; j < grid[i].length; j++) {
-                if (grid[i][j]) {
+        for (boolean[] row : grid) {
+            for (boolean cell : row) {
+                if (cell) {
                     count++;
                 }
             }
